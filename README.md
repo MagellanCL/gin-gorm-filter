@@ -24,11 +24,11 @@ go get github.com/magellancl/gin-gorm-filter_v2
 ```go
 type UserModel struct {
     gorm.Model
-    Username string `gorm:"uniqueIndex" filter:"filterable"`
-    FullName string `filter:"param:full_name"`
-    Role     string `filter:"filterable"`
-	CreatedAt               time.Time      `filter:"filterable"`
-	UpdatedAt               time.Time      `filter:"filterable"`
+    Username 		string 			`gorm:"uniqueIndex" filter:"filterable"`
+    FullName 		string 			`filter:"param:full_name"`
+    Role     		string 			`filter:"filterable"`
+	CreatedAt       time.Time      	`filter:"filterable"`
+	UpdatedAt       time.Time      	`filter:"filterable"`
 }
 ```
 `param` tag defines custom column name and query param name.
