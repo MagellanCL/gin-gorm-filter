@@ -50,25 +50,31 @@ func GetUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, users)
 }
 ```
-Any filter combination can be used here `filter.PAGINATION|filter.ORDER_BY` e.g. **Important note:** GORM model should be initialized first for DB, otherwise filters won't work.\
+Any filter combination can be used here `filter.PAGINATION|filter.ORDER_BY` e.g. **Important note:** GORM model should be initialized first for DB, otherwise filters won't work.
 
 ## FILTER
 
-Using the tag `filter:"filterable"` on your gorm object, and activating it with `filter.FILTER`, you can make a field filterable. The standard filter will use this format : `?username=john`.\
-You can use more complex filters with the separators <, >, >=, <=, !=. eg :\
-`?created_at>=2022-10-18&created_at<2022-10-21` (be careful of your timezone. You should be able to input any date format readable by your DBMS)\
-`?city!=grenoble`\
-`?price>10&created_at<2022-10-21`\
+Using the tag `filter:"filterable"` on your gorm object, and activating it with `filter.FILTER`, you can make a field filterable.
+
+The standard filter will use this format : `?username=john`.
+
+You can use more complex filters with the separators <, >, >=, <=, !=. eg :
+
+`?created_at>=2022-10-18&created_at<2022-10-21` (be careful of your timezone. You should be able to input any date format readable by your DBMS)
+
+`?city!=grenoble`
+
+`?price>10&created_at<2022-10-21`
 
 ## PAGINATE
 
 Activating pagination with `filter.PAGINATE` will allow you to use the filters page and limit(eg : `?page=2&limit=50`). Limit maximum is 100, so you can request a maximum of 100 items at once. The default value is 20.
-It will also renseign the following headers :\
+It will also renseign the following headers :
 
 "X-Paginate-Items" -> total number of items\
 "X-Paginate-Pages" -> total number of pages\
 "X-Paginate-Current" -> current page\
-"X-Paginate-Limit" -> limit of items per page\
+"X-Paginate-Limit" -> limit of items per page
 
 ## ORDER BY
 
