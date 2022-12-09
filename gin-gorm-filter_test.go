@@ -23,7 +23,7 @@ import (
 type User struct {
 	Id       int64
 	Username string `filter:"searchable;filterable"`
-	FullName string `filter:"param:name;searchable"`
+	FullName string `filter:"param:full_name;searchable"`
 	Email    string `filter:"filterable"`
 	// This field is not filtered.
 	Password string
@@ -94,7 +94,7 @@ func (s *TestSuite) TestFiltersNotFilterable() {
 	}
 	s.mock.ExpectQuery(`^SELECT \* FROM "users" ORDER`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "Username", "FullName", "Email", "Password"}))
-	err := s.db.Model(&User{}).Scopes(FilterByQuery(ctx, FILTER)).Find(&users).Error
+	err := s.db.Model(&User{}).Scopes(FilterByQuery(ctx, FILTER|ORDER_BY)).Find(&users).Error
 	s.NoError(err)
 }
 
@@ -111,10 +111,11 @@ func (s *TestSuite) TestFiltersNoFilterConfig() {
 
 	s.mock.ExpectQuery(`^SELECT \* FROM "users"$`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "Username", "FullName", "Email", "Password"}))
-	err := s.db.Model(&User{}).Scopes(FilterByQuery(ctx, SEARCH)).Find(&users).Error
+	err := s.db.Model(&User{}).Scopes(FilterByQuery(ctx, 0)).Find(&users).Error
 	s.NoError(err)
 }
 
+/* // search function is disabled for now
 // TestFiltersSearchable is a test suite for searchable filters functionality.
 func (s *TestSuite) TestFiltersSearchable() {
 	var users []User
@@ -131,7 +132,7 @@ func (s *TestSuite) TestFiltersSearchable() {
 		WillReturnRows(sqlmock.NewRows([]string{"id", "Username", "FullName", "Email", "Password"}))
 	err := s.db.Model(&User{}).Scopes(FilterByQuery(ctx, ALL)).Find(&users).Error
 	s.NoError(err)
-}
+}*/
 
 // TestFiltersPaginateOnly is a test suite for pagination functionality.
 func (s *TestSuite) TestFiltersPaginateOnly() {
@@ -144,7 +145,8 @@ func (s *TestSuite) TestFiltersPaginateOnly() {
 		},
 	}
 
-	s.mock.ExpectQuery(`^SELECT \* FROM "users" ORDER BY "id" DESC LIMIT 10 OFFSET 10$`).
+	s.mock.ExpectQuery(`^SELECT count\(\*\) FROM "users"`).WillReturnRows(sqlmock.NewRows([]string{"count"}))
+	s.mock.ExpectQuery(`^SELECT \* FROM "users" ORDER BY "created_at" DESC LIMIT 10 OFFSET 10$`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "Username", "FullName", "Email", "Password"}))
 	err := s.db.Model(&User{}).Scopes(FilterByQuery(ctx, ALL)).Find(&users).Error
 	s.NoError(err)

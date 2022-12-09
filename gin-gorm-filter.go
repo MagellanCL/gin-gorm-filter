@@ -27,7 +27,7 @@ type queryParams struct {
 }
 
 const (
-	SEARCH   = 1  // NOT IMPLEMENTED // Filter response with LIKE query "search={search_phrase}"
+	//SEARCH   = 1  // NOT IMPLEMENTED // Filter response with LIKE query "search={search_phrase}"
 	FILTER   = 2  // Filter response by column name values "{column_name}={value}"
 	PAGINATE = 4  // Paginate response with page and page_size
 	ORDER_BY = 8  // Order response by column name
