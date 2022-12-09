@@ -23,7 +23,7 @@ go get github.com/magellancl/gin-gorm-filter_v2
 ## Model definition
 ```go
 type UserModel struct {
-	gorm.Model
+	ID				uuid.UUID		`gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	Username		string			`gorm:"uniqueIndex" filter:"filterable"`
 	FullName		string			`filter:"param:full_name"`
 	Role			string			`filter:"filterable"`
