@@ -69,7 +69,7 @@ func (s *TestSuite) TestFiltersBasic() {
 	ctx := gin.Context{}
 	ctx.Request = &http.Request{
 		URL: &url.URL{
-			RawQuery: "filter=login:sampleUser",
+			RawQuery: "username=sampleUser",
 		},
 	}
 
@@ -86,7 +86,7 @@ func (s *TestSuite) TestFiltersNotFilterable() {
 	ctx := gin.Context{}
 	ctx.Request = &http.Request{
 		URL: &url.URL{
-			RawQuery: "filter=password:samplePassword",
+			RawQuery: "password=samplePassword",
 		},
 	}
 	s.mock.ExpectQuery(`^SELECT \* FROM "users" ORDER`).
@@ -101,7 +101,7 @@ func (s *TestSuite) TestFiltersNoFilterConfig() {
 	ctx := gin.Context{}
 	ctx.Request = &http.Request{
 		URL: &url.URL{
-			RawQuery: "filter=login:sampleUser",
+			RawQuery: "username=sampleUser",
 		},
 	}
 
