@@ -8,6 +8,7 @@ package filter
 import (
 	"database/sql"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
@@ -21,7 +22,7 @@ import (
 
 type User struct {
 	Id       int64
-	Username string `filter:"param:login;searchable;filterable"`
+	Username string `filter:"searchable;filterable"`
 	FullName string `filter:"param:name;searchable"`
 	Email    string `filter:"filterable"`
 	// This field is not filtered.
@@ -66,24 +67,26 @@ func (s *TestSuite) TearDownTest() {
 // TestFiltersBasic is a test suite for basic filters functionality.
 func (s *TestSuite) TestFiltersBasic() {
 	var users []User
-	ctx := gin.Context{}
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
 	ctx.Request = &http.Request{
 		URL: &url.URL{
 			RawQuery: "username=sampleUser",
 		},
 	}
 
-	s.mock.ExpectQuery(`^SELECT \* FROM "users" WHERE "Username" = \$1`).
+	s.mock.ExpectQuery(`^SELECT \* FROM "users" WHERE "username" = \$1`).
 		WithArgs("sampleUser").
 		WillReturnRows(sqlmock.NewRows([]string{"id", "Username", "FullName", "Email", "Password"}))
-	err := s.db.Model(&User{}).Scopes(FilterByQuery(&ctx, ALL)).Find(&users).Error
+	err := s.db.Model(&User{}).Scopes(FilterByQuery(ctx, FILTER)).Find(&users).Error
 	s.NoError(err)
 }
 
 // Filtering for a field that is not filtered should not be performed
 func (s *TestSuite) TestFiltersNotFilterable() {
 	var users []User
-	ctx := gin.Context{}
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
 	ctx.Request = &http.Request{
 		URL: &url.URL{
 			RawQuery: "password=samplePassword",
@@ -91,14 +94,15 @@ func (s *TestSuite) TestFiltersNotFilterable() {
 	}
 	s.mock.ExpectQuery(`^SELECT \* FROM "users" ORDER`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "Username", "FullName", "Email", "Password"}))
-	err := s.db.Model(&User{}).Scopes(FilterByQuery(&ctx, ALL)).Find(&users).Error
+	err := s.db.Model(&User{}).Scopes(FilterByQuery(ctx, FILTER)).Find(&users).Error
 	s.NoError(err)
 }
 
 // Filtering would not be applied if no config is provided.
 func (s *TestSuite) TestFiltersNoFilterConfig() {
 	var users []User
-	ctx := gin.Context{}
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
 	ctx.Request = &http.Request{
 		URL: &url.URL{
 			RawQuery: "username=sampleUser",
@@ -107,14 +111,15 @@ func (s *TestSuite) TestFiltersNoFilterConfig() {
 
 	s.mock.ExpectQuery(`^SELECT \* FROM "users"$`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "Username", "FullName", "Email", "Password"}))
-	err := s.db.Model(&User{}).Scopes(FilterByQuery(&ctx, SEARCH)).Find(&users).Error
+	err := s.db.Model(&User{}).Scopes(FilterByQuery(ctx, SEARCH)).Find(&users).Error
 	s.NoError(err)
 }
 
 // TestFiltersSearchable is a test suite for searchable filters functionality.
 func (s *TestSuite) TestFiltersSearchable() {
 	var users []User
-	ctx := gin.Context{}
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
 	ctx.Request = &http.Request{
 		URL: &url.URL{
 			RawQuery: "search=John",
@@ -124,14 +129,15 @@ func (s *TestSuite) TestFiltersSearchable() {
 	s.mock.ExpectQuery(`^SELECT \* FROM "users" WHERE \("Username" LIKE \$1 OR "FullName" LIKE \$2\)`).
 		WithArgs("%John%", "%John%").
 		WillReturnRows(sqlmock.NewRows([]string{"id", "Username", "FullName", "Email", "Password"}))
-	err := s.db.Model(&User{}).Scopes(FilterByQuery(&ctx, ALL)).Find(&users).Error
+	err := s.db.Model(&User{}).Scopes(FilterByQuery(ctx, ALL)).Find(&users).Error
 	s.NoError(err)
 }
 
 // TestFiltersPaginateOnly is a test suite for pagination functionality.
 func (s *TestSuite) TestFiltersPaginateOnly() {
 	var users []User
-	ctx := gin.Context{}
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
 	ctx.Request = &http.Request{
 		URL: &url.URL{
 			RawQuery: "page=2&limit=10",
@@ -140,14 +146,15 @@ func (s *TestSuite) TestFiltersPaginateOnly() {
 
 	s.mock.ExpectQuery(`^SELECT \* FROM "users" ORDER BY "id" DESC LIMIT 10 OFFSET 10$`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "Username", "FullName", "Email", "Password"}))
-	err := s.db.Model(&User{}).Scopes(FilterByQuery(&ctx, ALL)).Find(&users).Error
+	err := s.db.Model(&User{}).Scopes(FilterByQuery(ctx, ALL)).Find(&users).Error
 	s.NoError(err)
 }
 
 // TestFiltersOrderBy is a test suite for order by functionality.
 func (s *TestSuite) TestFiltersOrderBy() {
 	var users []User
-	ctx := gin.Context{}
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
 	ctx.Request = &http.Request{
 		URL: &url.URL{
 			RawQuery: "order_by=Email&order_direction=asc",
@@ -156,7 +163,7 @@ func (s *TestSuite) TestFiltersOrderBy() {
 
 	s.mock.ExpectQuery(`^SELECT \* FROM "users" ORDER BY "Email"$`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "Username", "FullName", "Email", "Password"}))
-	err := s.db.Model(&User{}).Scopes(FilterByQuery(&ctx, ORDER_BY)).Find(&users).Error
+	err := s.db.Model(&User{}).Scopes(FilterByQuery(ctx, ORDER_BY)).Find(&users).Error
 	s.NoError(err)
 }
 
