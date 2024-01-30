@@ -47,26 +47,6 @@ func orderBy(db *gorm.DB, params QueryParams, table string) *gorm.DB {
 	)
 }
 
-func paginate(db *gorm.DB, params QueryParams) *gorm.DB {
-	if params.All {
-		return db
-	}
-
-	if params.Page == 0 {
-		params.Page = 1
-	}
-
-	switch {
-	case params.Limit > 100:
-		params.Limit = 100
-	case params.Limit <= 0:
-		params.Limit = 10
-	}
-
-	offset := (params.Page - 1) * params.Limit
-	return db.Offset(offset).Limit(params.Limit)
-}
-
 var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
 var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
 
