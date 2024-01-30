@@ -146,7 +146,7 @@ func (s *TestSuite) TestFiltersPaginateOnly() {
 	}
 
 	s.mock.ExpectQuery(`^SELECT count\(\*\) FROM "users"`).WillReturnRows(sqlmock.NewRows([]string{"count"}))
-	s.mock.ExpectQuery(`^SELECT \* FROM "users" ORDER BY "created_at" DESC LIMIT 10 OFFSET 10$`).
+	s.mock.ExpectQuery(`^SELECT \* FROM "users" ORDER BY "users"\."created_at" DESC LIMIT 10 OFFSET 10$`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "Username", "FullName", "Email", "Password"}))
 	err := s.db.Model(&User{}).Scopes(FilterByQuery(ctx, ALL)).Find(&users).Error
 	s.NoError(err)
@@ -163,7 +163,7 @@ func (s *TestSuite) TestFiltersOrderBy() {
 		},
 	}
 
-	s.mock.ExpectQuery(`^SELECT \* FROM "users" ORDER BY "Email"$`).
+	s.mock.ExpectQuery(`^SELECT \* FROM "users" ORDER BY "users"\."Email"$`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "Username", "FullName", "Email", "Password"}))
 	err := s.db.Model(&User{}).Scopes(FilterByQuery(ctx, ORDER_BY)).Find(&users).Error
 	s.NoError(err)
