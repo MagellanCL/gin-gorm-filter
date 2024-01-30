@@ -17,7 +17,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type queryParams struct {
+type QueryParams struct {
 	Filter         string `form:"filter"`
 	Page           int    `form:"page,default=1"`
 	Limit          int    `form:"limit,default=20"`
@@ -40,14 +40,14 @@ var (
 	paramNameRegexp  = regexp.MustCompile(`(?m)param:(\w{1,}).*`)
 )
 
-func orderBy(db *gorm.DB, params queryParams) *gorm.DB {
+func orderBy(db *gorm.DB, params QueryParams, table string) *gorm.DB {
 	return db.Order(clause.OrderByColumn{
-		Column: clause.Column{Name: params.OrderBy},
+		Column: clause.Column{Name: table + "." + params.OrderBy},
 		Desc:   params.OrderDirection == "desc"},
 	)
 }
 
-func paginate(db *gorm.DB, params queryParams) *gorm.DB {
+func paginate(db *gorm.DB, params QueryParams) *gorm.DB {
 	if params.All {
 		return db
 	}
@@ -186,6 +186,49 @@ func getSeparator(key, value string) (string, string, string) {
 	return "", "", ""
 }
 
+// Use this function to paginate custom query.
+// Example :
+//
+// db := vd.db.Model(&Customer{}).
+//
+//	Select("id, COUNT(orders.id)").
+//	Joins("JOIN orders ON orders.customer_id = customers.id").
+//	Where("orders.type = ?", orderSold)
+//
+// err = Paginate(c, db, params).
+// Scan(&customType).Error
+//
+//	if err != nil {
+//		return ret, err
+//	}
+func Paginate(c *gin.Context, db *gorm.DB, params QueryParams) *gorm.DB {
+	var count int64
+	db.Count(&count)
+	if params.Page == 0 {
+		params.Page = 1
+	}
+
+	switch {
+	case params.Limit > 100:
+		params.Limit = 100
+	case params.Limit <= 0:
+		params.Limit = 10
+	}
+
+	maxPage := count / int64(params.Limit)
+	if count%int64(params.Limit) != 0 {
+		maxPage++
+	}
+
+	c.Header("X-Paginate-Items", strconv.FormatInt(count, 10))
+	c.Header("X-Paginate-Pages", strconv.FormatInt(maxPage, 10))
+	c.Header("X-Paginate-Current", strconv.Itoa(params.Page))
+	c.Header("X-Paginate-Limit", strconv.Itoa(params.Limit))
+
+	offset := (params.Page - 1) * params.Limit
+	return db.Offset(offset).Limit(params.Limit)
+}
+
 // Filter DB request with query parameters.
 // Note: Don't forget to initialize DB Model first, otherwise filter and search won't work
 // Example:
@@ -205,8 +248,12 @@ func getSeparator(key, value string) (string, string, string) {
 //		FullName string `filter:"searchable"`
 //	}
 func FilterByQuery(c *gin.Context, config int) func(db *gorm.DB) *gorm.DB {
+	return FilterByQueryWithCustomDefault(c, config, QueryParams{})
+}
+
+func FilterByQueryWithCustomDefault(c *gin.Context, config int, params QueryParams) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		var params queryParams
+		setDefault(&params)
 		err := c.BindQuery(&params)
 		if err != nil {
 			return nil
@@ -221,24 +268,39 @@ func FilterByQuery(c *gin.Context, config int) func(db *gorm.DB) *gorm.DB {
 			}
 		}
 
-		if config&ORDER_BY > 0 {
-			db = orderBy(db, params)
+		stmt := &gorm.Statement{DB: db}
+		err = stmt.Parse(model)
+		if err != nil {
+			return nil
 		}
+		table := stmt.Schema.Table
 		if config&PAGINATE > 0 {
-			var count int64
-			db.Count(&count)
-			db = paginate(db, params)
-
-			maxPage := count / int64(params.Limit)
-			if count%int64(params.Limit) != 0 {
-				maxPage++
-			}
-
-			c.Header("X-Paginate-Items", strconv.FormatInt(count, 10))
-			c.Header("X-Paginate-Pages", strconv.FormatInt(maxPage, 10))
-			c.Header("X-Paginate-Current", strconv.Itoa(params.Page))
-			c.Header("X-Paginate-Limit", strconv.Itoa(params.Limit))
+			db = Paginate(c, db, params)
 		}
+
+		if config&ORDER_BY > 0 {
+			db = orderBy(db, params, table)
+		}
+
 		return db
+	}
+}
+
+func setDefault(p *QueryParams) {
+
+	if p.Limit == 0 {
+		p.Limit = 20
+	}
+
+	if p.Page == 0 {
+		p.Page = 1
+	}
+
+	if p.OrderBy == "" {
+		p.OrderBy = "created_at"
+	}
+
+	if p.OrderDirection == "" {
+		p.OrderDirection = "desc"
 	}
 }
